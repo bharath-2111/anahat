@@ -1,0 +1,225 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-dark: #07090e;
+    --panel-dark: #0f1420;
+    --panel-dark-hover: #151c2d;
+    --border-dark: #1e293b;
+    --accent-green: #10b981;
+    --status-real: #10b981;
+    --status-spoof: #ef4444;
+    --status-amber: #f59e0b;
+  }
+
+  body {
+    background-color: #07090e;
+    color: #f8fafc;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #07090e;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Technical grid background pattern using solid thin grid lines (NO GRADIENTS) */
+.bg-tech-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(30, 41, 59, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 41, 59, 0.35) 1px, transparent 1px);
+}
+
+/* ----------------------------------------------------
+   NANO BOT ASSISTANT STYLING (Solid Security Green Theme)
+   NO GRADIENTS / STATIC ACCENT COLORS ONLY
+---------------------------------------------------- */
+.nano-bot-wrapper {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+}
+
+.cute-bubble {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid #1e293b;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  max-width: 260px;
+  text-align: center;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.cute-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #1e293b;
+}
+
+.nano-body {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  background-color: #0f172a;
+  border: 1.5px solid #10b981;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.nub-hand {
+  position: absolute;
+  top: 24px;
+  width: 8px;
+  height: 14px;
+  background-color: #1e293b;
+  border: 1px solid #10b981;
+  border-radius: 4px;
+}
+.nub-hand.left { left: -10px; }
+.nub-hand.right { right: -10px; }
+
+.nano-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.antenna-bulb {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981; /* Static Green Accent - No Color Shift */
+  position: absolute;
+  top: -12px;
+}
+
+.antenna-bulb::before {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 3px;
+  width: 2px;
+  height: 6px;
+  background-color: #10b981;
+}
+
+.face-screen {
+  width: 44px;
+  height: 32px;
+  background-color: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.eyes-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.nano-eye {
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+/* Facial Expressions */
+.nano-eye.happy {
+  border-radius: 50%;
+}
+.nano-eye.love {
+  background-color: #10b981;
+  border-radius: 50%;
+}
+.nano-eye.curious {
+  height: 10px;
+  width: 6px;
+}
+.nano-eye.excited {
+  background-color: #10b981;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+.nano-eye.sleep {
+  height: 2px;
+  width: 8px;
+  background-color: #64748b;
+}
+.nano-eye.dizzy {
+  background-color: #f59e0b;
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+.cheeks {
+  display: flex;
+  justify-content: space-between;
+  width: 32px;
+  position: absolute;
+  bottom: 3px;
+}
+
+.blush {
+  width: 4px;
+  height: 2px;
+  background-color: #334155;
+  border-radius: 1px;
+}
+
+.gravity-ripple {
+  position: absolute;
+  bottom: -8px;
+  width: 32px;
+  height: 4px;
+  background-color: rgba(16, 185, 129, 0.2);
+  border-radius: 50%;
+}
