@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AnalysisProvider, useAnalysis } from './context/AnalysisContext';
 
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 import Analyze from './pages/Analyze';
 import Results from './pages/Results';
 import LiveDetection from './pages/LiveDetection';
@@ -24,6 +25,15 @@ export default function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           
+
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/analyze"
             element={

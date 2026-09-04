@@ -1,14 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { analyzeAudio } from '../services/api';
 import { normalizePredictionResponse } from '../utils/responseMapper';
 import { validateAudioFile } from '../utils/validators';
 
 const AnalysisContext = createContext(null);
 
-const STORAGE_KEY_USER = 'aura_voice_user';
+const STORAGE_KEY_USER = 'voxshield_user';
+const STORAGE_KEY_AUTH = 'voxshield_authenticated';
 
 export function AnalysisProvider({ children }) {
-  // 1. Identification User State
   const [userData, setUserData] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_USER);
@@ -18,38 +18,61 @@ export function AnalysisProvider({ children }) {
     }
   });
 
-  // 2. Audio & Analysis State
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_AUTH) === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileMetadata, setFileMetadata] = useState(null);
-  const [analysisStatus, setAnalysisStatus] = useState('idle'); // 'idle' | 'file-selected' | 'processing' | 'success' | 'error'
+  const [analysisStatus, setAnalysisStatus] = useState('idle');
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
   const [isMockMode, setIsMockMode] = useState(false);
 
-  // Save user data to localStorage
+  // -----------------------------
+  // Authentication
+  // -----------------------------
+
   const loginUser = (user) => {
     setUserData(user);
+    setIsAuthenticated(true);
+
     try {
       localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+      localStorage.setItem(STORAGE_KEY_AUTH, 'true');
     } catch (e) {
-      console.warn('Could not save user data to localStorage');
+      console.warn('Could not save authentication data.');
     }
   };
 
   const logoutUser = () => {
     setUserData(null);
+    setIsAuthenticated(false);
+
     try {
       localStorage.removeItem(STORAGE_KEY_USER);
+      localStorage.removeItem(STORAGE_KEY_AUTH);
     } catch (e) {
-      // Ignore
+      console.warn('Could not clear authentication data.');
     }
   };
 
-  // Handle selecting audio file
+  // -----------------------------
+  // Existing audio functionality
+  // -----------------------------
+
   const selectAudioFile = (file) => {
     const validation = validateAudioFile(file);
+
     if (!validation.valid) {
-      setError({ title: 'Invalid File', message: validation.error });
+      setError({
+        title: 'Invalid File',
+        message: validation.error,
+      });
       return false;
     }
 
@@ -57,27 +80,34 @@ export function AnalysisProvider({ children }) {
     setError(null);
     setAnalysisResult(null);
 
-    // Calculate metadata
     const meta = {
       name: file.name,
       size: file.size,
       type: file.type || 'audio/wav',
       lastModified: new Date(file.lastModified).toISOString(),
-      duration: '00:00' // Default fallback
+      duration: '00:00',
     };
 
-    // Attempt to extract real audio duration using HTML5 Audio object
     try {
       const audioUrl = URL.createObjectURL(file);
       const audio = new Audio();
+
       audio.src = audioUrl;
+
       audio.onloadedmetadata = () => {
         if (!isNaN(audio.duration)) {
           const mins = Math.floor(audio.duration / 60);
           const secs = Math.floor(audio.duration % 60);
-          meta.duration = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+          meta.duration = `${mins
+            .toString()
+            .padStart(2, '0')}:${secs
+            .toString()
+            .padStart(2, '0')}`;
+
           setFileMetadata({ ...meta });
         }
+
         URL.revokeObjectURL(audioUrl);
       };
     } catch (e) {
@@ -86,10 +116,10 @@ export function AnalysisProvider({ children }) {
 
     setFileMetadata(meta);
     setAnalysisStatus('file-selected');
+
     return true;
   };
 
-  // Remove audio file
   const clearSelectedFile = () => {
     setSelectedFile(null);
     setFileMetadata(null);
@@ -98,10 +128,12 @@ export function AnalysisProvider({ children }) {
     setAnalysisStatus('idle');
   };
 
-  // Run backend FastAPI analysis
   const runAnalysis = async () => {
     if (!selectedFile) {
-      setError({ title: 'No File Selected', message: 'Please select an audio file to analyze.' });
+      setError({
+        title: 'No File Selected',
+        message: 'Please select an audio file to analyze.',
+      });
       return;
     }
 
@@ -110,42 +142,55 @@ export function AnalysisProvider({ children }) {
 
     try {
       const rawData = await analyzeAudio(selectedFile, isMockMode);
-      const normalized = normalizePredictionResponse(rawData, selectedFile);
+      const normalized = normalizePredictionResponse(
+        rawData,
+        selectedFile
+      );
+
       setAnalysisResult(normalized);
       setAnalysisStatus('success');
     } catch (err) {
       console.error('Audio Analysis Error:', err);
+
       setAnalysisStatus('error');
+
       setError({
         title: 'Analysis Failed',
-        message: err.message || 'An unexpected error occurred while communicating with the analysis server.'
+        message:
+          err.message ||
+          'An unexpected error occurred while communicating with the analysis server.',
       });
     }
   };
 
-  // Toggle development mock mode
   const toggleMockMode = (enabled) => {
-    setIsMockMode(enabled !== undefined ? enabled : !isMockMode);
-  };
-
-  const value = {
-    userData,
-    loginUser,
-    logoutUser,
-    selectedFile,
-    fileMetadata,
-    analysisStatus,
-    analysisResult,
-    error,
-    isMockMode,
-    selectAudioFile,
-    clearSelectedFile,
-    runAnalysis,
-    toggleMockMode
+    setIsMockMode(
+      enabled !== undefined ? enabled : !isMockMode
+    );
   };
 
   return (
-    <AnalysisContext.Provider value={value}>
+    <AnalysisContext.Provider
+      value={{
+        // Authentication
+        userData,
+        isAuthenticated,
+        loginUser,
+        logoutUser,
+
+        // Audio analysis
+        selectedFile,
+        fileMetadata,
+        analysisStatus,
+        analysisResult,
+        error,
+        isMockMode,
+        selectAudioFile,
+        clearSelectedFile,
+        runAnalysis,
+        toggleMockMode,
+      }}
+    >
       {children}
     </AnalysisContext.Provider>
   );
@@ -153,8 +198,12 @@ export function AnalysisProvider({ children }) {
 
 export function useAnalysis() {
   const context = useContext(AnalysisContext);
+
   if (!context) {
-    throw new Error('useAnalysis must be used within an AnalysisProvider');
+    throw new Error(
+      'useAnalysis must be used within an AnalysisProvider'
+    );
   }
+
   return context;
 }

@@ -1,170 +1,424 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAnalysis } from '../context/AnalysisContext';
-import { Shield, FileAudio, BarChart2, Activity, User, LogOut, Server, ToggleLeft, ToggleRight } from 'lucide-react';
+import {
+  Shield,
+  LayoutDashboard,
+  FileAudio,
+  Activity,
+  BarChart3,
+  Menu,
+  X,
+  Circle,
+} from 'lucide-react';
 
 export default function Navbar() {
-  const { userData, logoutUser, isMockMode, toggleMockMode } = useAnalysis();
-  const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const navigate = useNavigate();
+  const { userData } = useAnalysis();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => {
-    logoutUser();
-    navigate('/login');
+  const userName = userData?.name || 'Operator';
+  const userInitial = userName.charAt(0).toUpperCase();
+
+  const navItems = [
+    {
+      label: 'Overview',
+      path: '/dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      label: 'Analyze',
+      path: '/analyze',
+      icon: FileAudio,
+    },
+    {
+      label: 'Live',
+      path: '/live',
+      icon: Activity,
+    },
+    {
+      label: 'Results',
+      path: '/results',
+      icon: BarChart3,
+    },
+  ];
+
+  const closeMobile = () => {
+    setMobileOpen(false);
   };
 
-  const navLinkStyle = ({ isActive }) =>
-    `flex items-center space-x-2 px-3 py-1.5 text-xs font-mono tracking-wider rounded transition-colors ${
-      isActive
-        ? 'bg-slate-800 text-emerald-400 border border-slate-700 font-bold'
-        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-    }`;
-
   return (
-    <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
-          
-          {/* Brand Mark */}
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-slate-900 border border-emerald-500/60 rounded flex items-center justify-center">
-              <Shield className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-mono font-bold tracking-widest text-slate-100 uppercase">
-                  AURA-VOICE
-                </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-900 border border-slate-700 text-emerald-400 rounded">
-                  SEC-LAB
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 font-mono hidden sm:block">
-                AI VOICE CLONING & SPOOF DETECTION
-              </p>
-            </div>
-          </div>
+    <>
+      {/* =========================================================
+          FLOATING NAVBAR
+          ========================================================= */}
+    <div className="h-24">
+      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl">
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-2">
-            <NavLink to="/analyze" className={navLinkStyle}>
-              <FileAudio className="w-4 h-4" />
-              <span>ANALYZER</span>
-            </NavLink>
-            <NavLink to="/results" className={navLinkStyle}>
-              <BarChart2 className="w-4 h-4" />
-              <span>DETAILED REPORT</span>
-            </NavLink>
-            <NavLink to="/live" className={navLinkStyle}>
-              <Activity className="w-4 h-4" />
-              <span>LIVE MONITOR</span>
-            </NavLink>
-          </nav>
+        <div className="mx-auto max-w-5xl">
 
-          {/* Controls & User Identification */}
-          <div className="hidden md:flex items-center space-x-4">
-            
-            {/* Backend Server Status & Mock Switcher */}
-            <div className="flex items-center space-x-2 px-2.5 py-1 bg-slate-900 border border-slate-800 rounded">
-              <Server className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-[10px] font-mono text-slate-400 uppercase">
-                {isMockMode ? 'MOCK MODE' : 'FASTAPI BASE'}
-              </span>
+          <div
+            className="
+              pointer-events-auto
+              relative
+              rounded-full
+              border border-slate-700/70
+              bg-[#0b0e14]/90
+              backdrop-blur-xl
+              shadow-[0_12px_40px_rgba(0,0,0,0.35)]
+            "
+          >
+
+            {/* ===================================================
+                DESKTOP NAV
+                =================================================== */}
+            <div className="relative hidden md:flex items-center h-[58px] px-2">
+
+              {/* -------------------------------------------------
+                  LOGO SLOT
+                  -------------------------------------------------
+                  Replace the Shield below tomorrow with:
+
+                  <img
+                    src="/logo.png"
+                    alt="VoxShield"
+                    className="w-8 h-8 object-contain"
+                  />
+
+                  Place logo.png inside:
+                  frontend/public/logo.png
+                  ------------------------------------------------- */}
+
               <button
-                onClick={() => toggleMockMode()}
-                title={isMockMode ? 'Switch to real FastAPI backend' : 'Switch to offline development mock'}
-                className="text-slate-400 hover:text-emerald-400 transition-colors ml-1"
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                className="
+                  flex items-center gap-2.5
+                  px-3
+                  shrink-0
+                  group
+                "
               >
-                {isMockMode ? (
-                  <ToggleRight className="w-5 h-5 text-amber-400" />
-                ) : (
-                  <ToggleLeft className="w-5 h-5 text-emerald-500" />
-                )}
-              </button>
-            </div>
-
-            {/* User Identification Badge */}
-            {userData ? (
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-slate-900 border border-slate-800 rounded">
-                  <User className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-xs font-mono text-slate-300 max-w-[120px] truncate">
-                    {userData.name}
-                  </span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  title="Logout / Change User"
-                  className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-900 rounded transition-colors"
+                <div
+                  className="
+                    w-8 h-8
+                    flex items-center justify-center
+                    rounded-full
+                    bg-emerald-500/10
+                    border border-emerald-500/20
+                    group-hover:border-emerald-400/40
+                    transition-colors
+                  "
                 >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <NavLink
-                to="/login"
-                className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-mono text-xs rounded transition-colors"
-              >
-                IDENTIFY
-              </NavLink>
-            )}
-          </div>
+                  <Shield
+                    className="
+                      w-[17px] h-[17px]
+                      text-emerald-400
+                      group-hover:text-emerald-300
+                      transition-colors
+                    "
+                    strokeWidth={1.8}
+                  />
+                </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-400 hover:text-slate-100"
-            >
-              <Activity className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Navigation Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-slate-950 border-b border-slate-800 px-4 py-3 space-y-2">
-          <NavLink
-            to="/analyze"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 text-xs font-mono text-slate-300 hover:bg-slate-900 rounded"
-          >
-            AUDIO ANALYZER
-          </NavLink>
-          <NavLink
-            to="/results"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 text-xs font-mono text-slate-300 hover:bg-slate-900 rounded"
-          >
-            DETAILED REPORT
-          </NavLink>
-          <NavLink
-            to="/live"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 text-xs font-mono text-slate-300 hover:bg-slate-900 rounded"
-          >
-            LIVE MONITORING
-          </NavLink>
-
-          <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
-            <button
-              onClick={() => toggleMockMode()}
-              className="text-xs font-mono text-slate-400 flex items-center gap-1"
-            >
-              MODE: {isMockMode ? 'OFFLINE MOCK' : 'LIVE FASTAPI'}
-            </button>
-            {userData && (
-              <button
-                onClick={handleLogout}
-                className="text-xs font-mono text-red-400 flex items-center gap-1"
-              >
-                <LogOut className="w-3.5 h-3.5" /> LOGOUT
+                <span
+                  className="
+                    text-[20px]
+                    font-semibold
+                    tracking-[0.14em]
+                    text-slate-100
+                  "
+                >
+                   <span className="text-emerald-400">Vox</span>
+  <span className="text-white">Shield</span>
+                </span>
               </button>
-            )}
+
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-slate-800 mx-2" />
+
+
+              {/* -------------------------------------------------
+                  NAVIGATION
+                  ------------------------------------------------- */}
+              <nav className="absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5">
+
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className="relative"
+                    >
+                      {({ isActive }) => (
+                        <div
+                          className={`
+                            relative
+                            flex items-center gap-2
+                            px-3.5 py-2
+                            rounded-full
+                            text-[12px]
+                            font-medium
+                            transition-all duration-200
+                            ${
+                              isActive
+                                ? 'text-white'
+                                : 'text-slate-500 hover:text-slate-200'
+                            }
+                          `}
+                        >
+
+                          {/* Active background */}
+                          {isActive && (
+                            <span
+                              className="
+                                absolute inset-0
+                                rounded-full
+                                bg-slate-800
+                                border border-slate-700
+                                shadow-sm
+                              "
+                            />
+                          )}
+
+                          <span className="relative flex items-center gap-2">
+
+                            <Icon
+                              className={`
+                                w-3.5 h-3.5
+                                ${
+                                  isActive
+                                    ? 'text-emerald-400'
+                                    : 'text-slate-600'
+                                }
+                              `}
+                              strokeWidth={1.8}
+                            />
+
+                            <span>{item.label}</span>
+
+                          </span>
+
+                        </div>
+                      )}
+                    </NavLink>
+                  );
+                })}
+
+              </nav>
+
+
+              {/* -------------------------------------------------
+                  SYSTEM STATUS
+                  ------------------------------------------------- */}
+              {/* RIGHT SIDE — MEMBER + SYSTEM STATUS */}
+<div className="ml-auto flex items-center gap-3 shrink-0">
+
+  {/* System status */}
+  <div className="flex items-center gap-2 px-2">
+    <span className="relative flex h-2 w-2">
+      <span
+        className="
+          absolute
+          inline-flex
+          h-full w-full
+          rounded-full
+          bg-emerald-400
+          opacity-40
+        "
+      />
+
+      <Circle
+        className="relative w-2 h-2 text-emerald-400 fill-emerald-400"
+      />
+    </span>
+
+    <span className="text-[10px] text-slate-500 tracking-wide">
+      Ready
+    </span>
+  </div>
+
+  {/* Divider */}
+  <div className="w-px h-6 bg-slate-800" />
+
+  {/* Member */}
+  <div className="flex items-center gap-2.5">
+
+    <div className="hidden lg:block text-right">
+      <p className="text-[11px] font-medium text-slate-300 leading-none">
+        {userName}
+      </p>
+
+      <p className="text-[10px] text-slate-600 mt-1">
+        Verified session
+      </p>
+    </div>
+
+    <div
+      className="
+        w-8 h-8
+        rounded-full
+        bg-slate-800
+        border border-slate-700
+        flex items-center justify-center
+        text-[11px]
+        font-semibold
+        text-emerald-400
+      "
+    >
+      {userInitial}
+    </div>
+
+  </div>
+
+</div>
+
+            </div>
+
+
+            {/* ===================================================
+                MOBILE NAV
+                =================================================== */}
+            <div className="md:hidden">
+
+              <div className="h-[56px] flex items-center justify-between px-2">
+
+                {/* Brand */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate('/dashboard');
+                    closeMobile();
+                  }}
+                  className="flex items-center gap-2.5 px-2"
+                >
+                  <div
+                    className="
+                      w-8 h-8
+                      rounded-full
+                      flex items-center justify-center
+                      bg-emerald-500/10
+                      border border-emerald-500/20
+                    "
+                  >
+                    <Shield
+                      className="w-4 h-4 text-emerald-400"
+                      strokeWidth={1.8}
+                    />
+                  </div>
+
+                  <span
+                    className="
+                      text-[13px]
+                      font-semibold
+                      tracking-[0.14em]
+                      text-white
+                    "
+                  >
+                    <span className="text-emerald-400">Vox</span>
+                    <span className="text-white">Shield</span>
+                  </span>
+                </button>
+
+
+                {/* Mobile controls */}
+                <div className="flex items-center gap-2">
+
+                  <div className="flex items-center gap-1.5 px-2.5">
+                    <Circle
+                      className="w-2 h-2 text-emerald-400 fill-emerald-400"
+                    />
+
+                    <span className="text-[9px] text-slate-500">
+                      Ready
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setMobileOpen(!mobileOpen)}
+                    className="
+                      w-9 h-9
+                      rounded-full
+                      flex items-center justify-center
+                      text-slate-400
+                      hover:text-white
+                      hover:bg-slate-800
+                      transition-colors
+                    "
+                    aria-label="Toggle navigation"
+                    aria-expanded={mobileOpen}
+                  >
+                    {mobileOpen ? (
+                      <X className="w-4 h-4" />
+                    ) : (
+                      <Menu className="w-4 h-4" />
+                    )}
+                  </button>
+
+                </div>
+
+              </div>
+
+
+              {/* Mobile menu */}
+              {mobileOpen && (
+                <div
+                  className="
+                    border-t border-slate-800/80
+                    px-2 pb-2 pt-2
+                  "
+                >
+
+                  <nav className="space-y-1">
+
+                    {navItems.map((item) => {
+                      const Icon = item.icon;
+
+                      return (
+                        <NavLink
+                          key={item.path}
+                          to={item.path}
+                          onClick={closeMobile}
+                          className={({ isActive }) => `
+                            flex items-center gap-3
+                            px-4 py-3
+                            rounded-2xl
+                            text-sm
+                            transition-colors
+                            ${
+                              isActive
+                                ? 'bg-slate-800 text-white'
+                                : 'text-slate-500 hover:bg-slate-900 hover:text-slate-200'
+                            }
+                          `}
+                        >
+                          <Icon
+                            className="w-4 h-4"
+                            strokeWidth={1.8}
+                          />
+
+                          <span>{item.label}</span>
+                        </NavLink>
+                      );
+                    })}
+
+                  </nav>
+
+                </div>
+              )}
+
+            </div>
+
           </div>
+
         </div>
-      )}
-    </header>
+
+      </header>
+      </div>
+    </>
   );
 }
