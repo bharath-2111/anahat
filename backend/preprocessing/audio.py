@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import librosa
 
@@ -8,10 +10,48 @@ from backend.config import (
 )
 
 
+SUPPORTED_AUDIO_FORMATS = {
+    ".wav",
+    ".mp3",
+    ".flac",
+    ".ogg",
+    ".m4a",
+}
+
+
+def validate_audio_file(file_path: str) -> None:
+    """
+    Validate that the supplied audio format is supported.
+    """
+
+    extension = os.path.splitext(file_path)[1].lower()
+
+    if extension not in SUPPORTED_AUDIO_FORMATS:
+        supported = ", ".join(sorted(SUPPORTED_AUDIO_FORMATS))
+
+        raise ValueError(
+            f"Unsupported audio format: {extension}. "
+            f"Supported formats: {supported}"
+        )
+
+
 def load_audio(file_path: str) -> np.ndarray:
     """
-    Load an audio file as mono audio at the target sample rate.
+    Load an audio file and convert it into the format
+    required by the AI pipeline.
+
+    Supported examples:
+        WAV
+        MP3
+        FLAC
+        OGG
+        M4A
+
+    Output:
+        Mono waveform at 16 kHz.
     """
+
+    validate_audio_file(file_path)
 
     audio, _ = librosa.load(
         file_path,
@@ -27,6 +67,9 @@ def normalize_audio(audio: np.ndarray) -> np.ndarray:
     Normalize waveform amplitude.
     """
 
+    if len(audio) == 0:
+        return audio
+
     max_amplitude = np.max(np.abs(audio))
 
     if max_amplitude == 0:
@@ -40,6 +83,9 @@ def remove_silence(audio: np.ndarray) -> np.ndarray:
     Remove leading and trailing silence.
     """
 
+    if len(audio) == 0:
+        return audio
+
     trimmed_audio, _ = librosa.effects.trim(
         audio,
         top_db=30,
@@ -50,17 +96,23 @@ def remove_silence(audio: np.ndarray) -> np.ndarray:
 
 def preprocess_audio(file_path: str) -> np.ndarray:
     """
-    Complete preprocessing pipeline.
+    Complete audio preprocessing pipeline.
 
-    Audio file
-        ↓
-    Load as mono 16 kHz
-        ↓
-    Remove silence
-        ↓
-    Normalize
-        ↓
-    Return waveform
+    File
+      ↓
+    Format validation
+      ↓
+    Decode WAV/MP3/etc.
+      ↓
+    Mono
+      ↓
+    16 kHz
+      ↓
+    Silence trimming
+      ↓
+    Normalization
+      ↓
+    AI-ready waveform
     """
 
     audio = load_audio(file_path)
@@ -88,6 +140,9 @@ def create_chunks(audio: np.ndarray) -> list[np.ndarray]:
 
     chunks = []
 
+    if len(audio) == 0:
+        return chunks
+
     if len(audio) <= chunk_size:
         chunks.append(audio)
         return chunks
@@ -100,10 +155,10 @@ def create_chunks(audio: np.ndarray) -> list[np.ndarray]:
 
         chunks.append(chunk)
 
-    # Include remaining audio if it is large enough
     remaining_start = len(audio) - chunk_size
 
     if remaining_start > 0:
+
         last_chunk = audio[remaining_start:]
 
         if not np.array_equal(last_chunk, chunks[-1]):

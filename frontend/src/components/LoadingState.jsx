@@ -69,13 +69,13 @@ export default function LoadingState() {
 
   // Calculate stage progress
   useEffect(() => {
-    const totalDuration = 25000; // 15 seconds
+    const totalDuration = 25000; // 25 seconds
     const interval = 100; // Update every 100ms
     let startTime = Date.now();
 
     const timer = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const newProgress = Math.min((elapsed / totalDuration) * 100, 100);
+      const newProgress = Math.min((elapsed / totalDuration) * 92, 92);
       
       setProgress(newProgress);
       setElapsedTime(elapsed);

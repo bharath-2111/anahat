@@ -74,20 +74,17 @@ export default function Navbar() {
                 =================================================== */}
             <div className="relative hidden md:flex items-center h-[58px] px-2">
 
-              {/* -------------------------------------------------
-                  LOGO SLOT
-                  -------------------------------------------------
-                  Replace the Shield below tomorrow with:
-
-                  <img
-                    src="/logo.png"
-                    alt="VoxShield"
-                    className="w-8 h-8 object-contain"
-                  />
-
-                  Place logo.png inside:
-                  frontend/public/logo.png
-                  ------------------------------------------------- */}
+              <div
+  className="
+    w-8 h-8
+    flex items-center justify-center
+    rounded-full
+    bg-emerald-500/10
+    border border-emerald-500/20
+  "
+>
+  
+</div>
 
               <button
                 type="button"

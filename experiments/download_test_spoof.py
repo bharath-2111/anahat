@@ -32,33 +32,53 @@ for index, (filename, expected_label) in TARGETS.items():
     }
 
     try:
-        response = requests.get(API_URL, params=params, timeout=60)
+        response = requests.get(
+            API_URL,
+            params=params,
+            timeout=60
+        )
+
         response.raise_for_status()
 
         data = response.json()
 
         row = data["rows"][0]["row"]
+
         audio = row["audio"]
 
-        audio_url = audio["src"]
+        # Handle both dictionary and list formats
+        if isinstance(audio, list):
+            audio_info = audio[0]
+        else:
+            audio_info = audio
 
-        print(f"Audio URL obtained.")
+        audio_url = audio_info["src"]
 
-        audio_response = requests.get(audio_url, timeout=120)
+        print("Audio URL obtained.")
+
+        audio_response = requests.get(
+            audio_url,
+            timeout=120
+        )
+
         audio_response.raise_for_status()
 
-        output_path = os.path.join(OUTPUT_DIR, filename)
+        output_path = os.path.join(
+            OUTPUT_DIR,
+            filename
+        )
 
         with open(output_path, "wb") as f:
             f.write(audio_response.content)
 
         print(f"Saved: {output_path}")
-        print(f"Expected: {expected_label}")
+        print(f"Expected label: {expected_label}")
         print()
 
     except Exception as e:
+
         print(f"ERROR processing {filename}")
-        print(e)
+        print(f"Error: {e}")
         print()
 
 print("Finished.")
