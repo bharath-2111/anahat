@@ -177,7 +177,7 @@ setMetrics([
             {Math.floor(elapsedTime / 1000)}s / 15s
           </span>
           <span className="text-[9px] font-medium text-slate-600 uppercase tracking-wider">
-            VoxShield Engine
+            Anahat Engine
           </span>
         </div>
       </div>

@@ -1,15 +1,16 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import tempfile
+import numpy as np
 
-from backend.preprocessing.audio import preprocess_audio
+from backend.preprocessing.audio import preprocess_audio, resample_audio
 from backend.inference.detector import detector
 from backend.risk.risk_engine import calculate_risk
 
 
 app = FastAPI(
-    title="VoxShield API",
+    title="Anahat API",
     description="AI-powered voice cloning and spoof detection system",
     version="1.0.0"
 )
@@ -19,6 +20,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "*",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -28,7 +30,7 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {
-        "system": "VoxShield",
+        "system": "Anahat",
         "status": "online",
         "message": "Voice spoof detection system is running."
     }
@@ -154,3 +156,92 @@ async def analyze_audio(file: UploadFile = File(...)):
         # Remove temporary file
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+@app.websocket("/ws/live")
+async def websocket_live_detection(websocket: WebSocket):
+    await websocket.accept()
+    audio_buffer = np.array([], dtype=np.float32)
+    client_sample_rate = 16000
+    
+    # 4 seconds at client sample rate
+    WINDOW_SAMPLES = 4 * client_sample_rate
+    STRIDE_SAMPLES = 1 * client_sample_rate
+
+    # Window count state for live stream
+    window_count = 0
+
+    try:
+        while True:
+            message = await websocket.receive()
+            if "text" in message and message["text"]:
+                try:
+                    import json
+                    text_data = json.loads(message["text"])
+                    if "sample_rate" in text_data and text_data["sample_rate"]:
+                        client_sample_rate = int(text_data["sample_rate"])
+                        WINDOW_SAMPLES = 4 * client_sample_rate
+                        STRIDE_SAMPLES = 1 * client_sample_rate
+                except Exception:
+                    pass
+
+            elif "bytes" in message and message["bytes"]:
+                chunk_bytes = message["bytes"]
+                chunk_samples = np.frombuffer(chunk_bytes, dtype=np.float32)
+                audio_buffer = np.concatenate((audio_buffer, chunk_samples))
+
+                # Bound max buffer to 10 seconds to avoid memory issues
+                if len(audio_buffer) > 10 * client_sample_rate:
+                    audio_buffer = audio_buffer[-10 * client_sample_rate:]
+
+                while len(audio_buffer) >= WINDOW_SAMPLES:
+                    raw_window = audio_buffer[:WINDOW_SAMPLES]
+                    window_count += 1
+                    
+                    # Explicitly resample (upsample/downsample) raw window Float32 array to 16 kHz NumPy array
+                    resampled_16k_window = resample_audio(raw_window, orig_sr=client_sample_rate, target_sr=16000)
+
+                    # Normalize amplitude
+                    max_amp = np.max(np.abs(resampled_16k_window))
+                    if max_amp > 0:
+                        norm_window = resampled_16k_window / max_amp
+                    else:
+                        norm_window = resampled_16k_window
+
+                    # Raw, uninfluenced single-window inference
+                    pred = detector._predict_window(norm_window)
+                    fake_prob = float(pred["fake_probability"])
+                    real_prob = float(pred["real_probability"])
+
+                    risk = calculate_risk(fake_prob)
+
+                    # Calculate 4-second timeframe label (stride = 1s)
+                    start_sec = (window_count - 1) * 1
+                    end_sec = start_sec + 4
+                    timestamp_label = f"{start_sec // 60:02d}:{start_sec % 60:02d} - {end_sec // 60:02d}:{end_sec % 60:02d}"
+
+                    await websocket.send_json({
+                        "status": "success",
+                        "frame_index": window_count,
+                        "timestamp_label": timestamp_label,
+                        "instant_spoof_probability": round(fake_prob, 4),
+                        "instant_real_probability": round(real_prob, 4),
+                        "spoof_probability": round(fake_prob, 4),
+                        "real_probability": round(real_prob, 4),
+                        "prediction": "SPOOF" if fake_prob >= 0.50 else "REAL",
+                        "risk_level": risk["risk_level"],
+                        "recommendation": risk["recommendation"],
+                        "sample_rate_hz": 16000,
+                        "format": "FLOAT32_PCM",
+                        "windows_analyzed": window_count,
+                    })
+
+                    audio_buffer = audio_buffer[STRIDE_SAMPLES:]
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        try:
+            await websocket.close()
+        except Exception:
+            pass

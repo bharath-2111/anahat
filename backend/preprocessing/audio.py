@@ -62,11 +62,26 @@ def load_audio(file_path: str) -> np.ndarray:
     return audio.astype(np.float32)
 
 
+def resample_audio(audio: np.ndarray, orig_sr: int, target_sr: int = SAMPLE_RATE) -> np.ndarray:
+    """
+    Explicitly upsample or downsample audio array from orig_sr to target_sr (default: 16000 Hz).
+    """
+    if len(audio) == 0 or orig_sr == target_sr:
+        return audio.astype(np.float32)
+
+    resampled = librosa.resample(
+        y=audio.astype(np.float32),
+        orig_sr=orig_sr,
+        target_sr=target_sr
+    )
+
+    return resampled.astype(np.float32)
+
+
 def normalize_audio(audio: np.ndarray) -> np.ndarray:
     """
     Normalize waveform amplitude.
     """
-
     if len(audio) == 0:
         return audio
 
@@ -82,7 +97,6 @@ def remove_silence(audio: np.ndarray) -> np.ndarray:
     """
     Remove leading and trailing silence.
     """
-
     if len(audio) == 0:
         return audio
 
@@ -102,11 +116,7 @@ def preprocess_audio(file_path: str) -> np.ndarray:
       ↓
     Format validation
       ↓
-    Decode WAV/MP3/etc.
-      ↓
-    Mono
-      ↓
-    16 kHz
+    Decode WAV/MP3/etc. & resample to 16 kHz Mono NumPy Float32 array on disk reading
       ↓
     Silence trimming
       ↓

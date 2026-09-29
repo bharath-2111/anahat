@@ -15,7 +15,7 @@ AUDIO_FILE = "data/test_audio/sample_telugu.wav"
 
 
 print("\n==============================")
-print("VOXSHIELD VOICE DETECTION TEST")
+print("ANAHAT VOICE DETECTION TEST")
 print("==============================")
 
 print(f"\nAudio: {AUDIO_FILE}")

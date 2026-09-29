@@ -162,7 +162,7 @@ export default function Dashboard() {
               </h2>
 
               <p className="mt-3 text-sm leading-6 text-slate-500 max-w-xl">
-                Upload an audio recording and let VoxShield evaluate whether
+                Upload an audio recording and let Anahat evaluate whether
                 the speech contains signs of synthetic or manipulated voice
                 generation.
               </p>
@@ -301,7 +301,7 @@ export default function Dashboard() {
 
               <div>
                 <p className="text-sm font-semibold text-slate-200">
-                  VoxShield protection pipeline
+                  Anahat protection pipeline
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-slate-600">
@@ -344,7 +344,7 @@ export default function Dashboard() {
         {/* Footer */}
         <div className="mt-10 pt-5 border-t border-slate-800/60 flex items-center justify-between">
           <p className="text-[9px] uppercase tracking-[0.16em] text-slate-700">
-            VOXSHIELD · Voice Security Intelligence
+            ANAHAT · Voice Security Intelligence
           </p>
 
           <p className="text-[9px] uppercase tracking-[0.14em] text-slate-700">

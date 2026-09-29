@@ -491,7 +491,174 @@ export default function LiveDetection() {
 
   /*
   |--------------------------------------------------------------------------
-  | DEMO CLOCK
+  | REAL-TIME BROWSER MEETING AUDIO CAPTURE & WEBSOCKET ENGINE
+  |--------------------------------------------------------------------------
+  */
+  const [isLiveCaptureActive, setIsLiveCaptureActive] = useState(false);
+  const [liveCaptureStatus, setLiveCaptureStatus] = useState('idle'); // idle | connecting | buffering | active | error
+  const [liveStatusMessage, setLiveStatusMessage] = useState('Ready for meeting audio capture');
+  const [liveResultPayload, setLiveResultPayload] = useState(null);
+  const [liveElapsed, setLiveElapsed] = useState(0);
+  const [rollingWindowHistory, setRollingWindowHistory] = useState([]);
+
+  const mediaStreamRef = React.useRef(null);
+  const audioContextRef = React.useRef(null);
+  const webSocketRef = React.useRef(null);
+
+  // Live capture clock
+  useEffect(() => {
+    let timer;
+    if (isLiveCaptureActive) {
+      timer = setInterval(() => {
+        setLiveElapsed((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setLiveElapsed(0);
+    }
+    return () => clearInterval(timer);
+  }, [isLiveCaptureActive]);
+
+  const stopLiveAnalysis = React.useCallback((reason) => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    if (webSocketRef.current) {
+      webSocketRef.current.close();
+      webSocketRef.current = null;
+    }
+
+    setIsLiveCaptureActive(false);
+    setLiveCaptureStatus('idle');
+    if (reason) {
+      setLiveStatusMessage(reason);
+    } else {
+      setLiveStatusMessage('Live meeting analysis stopped.');
+    }
+  }, []);
+
+  const startLiveAnalysis = async () => {
+    try {
+      stopLiveAnalysis();
+      setShowAlert(false);
+      setLiveResultPayload(null);
+      setRollingWindowHistory([]);
+      setLiveCaptureStatus('connecting');
+      setLiveStatusMessage('Prompting browser tab audio sharing...');
+
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+
+      const audioTracks = stream.getAudioTracks();
+      if (!audioTracks || audioTracks.length === 0) {
+        stream.getTracks().forEach((t) => t.stop());
+        setLiveCaptureStatus('error');
+        setLiveStatusMessage(
+          "No audio track found in shared media. Ensure 'Share tab audio' is enabled in the browser picker."
+        );
+        return;
+      }
+
+      mediaStreamRef.current = stream;
+      const audioTrack = audioTracks[0];
+
+      audioTrack.onended = () => {
+        stopLiveAnalysis('Browser tab sharing stopped by user.');
+      };
+
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioCtx({ sampleRate: 16000 });
+      audioContextRef.current = audioCtx;
+
+      await audioCtx.audioWorklet.addModule('/audio-processor.js');
+
+      const sourceNode = audioCtx.createMediaStreamSource(stream);
+      const workletNode = new AudioWorkletNode(audioCtx, 'live-audio-processor');
+
+      sourceNode.connect(workletNode);
+      sourceNode.connect(audioCtx.destination);
+
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const apiHost = import.meta.env.VITE_API_BASE_URL
+        ? import.meta.env.VITE_API_BASE_URL.replace(/^https?:\/\//, '')
+        : 'localhost:8000';
+      const wsUrl = `${wsProtocol}//${apiHost}/ws/live`;
+
+      const ws = new WebSocket(wsUrl);
+      ws.binaryType = 'arraybuffer';
+      webSocketRef.current = ws;
+
+      ws.onopen = () => {
+        setIsLiveCaptureActive(true);
+        setLiveCaptureStatus('buffering');
+        setLiveStatusMessage('Capturing meeting audio. Buffering initial 4s window...');
+      };
+
+      workletNode.port.onmessage = (event) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(event.data);
+        }
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.status === 'success') {
+            setLiveResultPayload(data);
+            setLiveCaptureStatus('active');
+            setLiveStatusMessage('Continuous live meeting analysis active.');
+
+            setRollingWindowHistory((prev) => {
+              const newEntry = {
+                index: data.frame_index || prev.length + 1,
+                timestamp: data.timestamp_label || `00:${String(prev.length).padStart(2, '0')} - 00:${String(prev.length + 4).padStart(2, '0')}`,
+                instantSpoof: data.instant_spoof_probability ?? data.spoof_probability,
+                instantReal: data.instant_real_probability ?? data.real_probability,
+                rollingSpoof: data.spoof_probability,
+                riskLevel: data.risk_level,
+                prediction: data.prediction,
+              };
+              const updated = [...prev, newEntry];
+              return updated.slice(-30);
+            });
+
+            if (data.risk_level === 'CRITICAL') {
+              setShowAlert(true);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to parse WebSocket JSON:', e);
+        }
+      };
+
+      ws.onerror = (e) => {
+        console.error('WebSocket error:', e);
+        setLiveStatusMessage('WebSocket connection error. Ensure FastAPI backend is running on port 8000.');
+      };
+
+      ws.onclose = () => {
+        setIsLiveCaptureActive(false);
+      };
+    } catch (err) {
+      console.error('Start Live Analysis Error:', err);
+      setLiveCaptureStatus('error');
+      if (err.name === 'NotAllowedError') {
+        setLiveStatusMessage('Tab capture permission was denied by user.');
+      } else {
+        setLiveStatusMessage(`Capture failed: ${err.message || 'Unknown error'}`);
+      }
+    }
+  };
+
+  /*
+  |--------------------------------------------------------------------------
+  | LEGACY DEMO CLOCK (FALLBACK)
   |--------------------------------------------------------------------------
   */
 
@@ -502,82 +669,32 @@ export default function LiveDetection() {
       setElapsed((previous) => {
         const next = Number((previous + 0.5).toFixed(1));
 
-        /*
-         * 0 - 4 seconds
-         * Waiting for call
-         */
         if (next < 4) {
           setDemoState('waiting');
-        }
-
-        /*
-         * 4 - 5.5 seconds
-         * Call detected
-         */
-        else if (next < 5.5) {
+        } else if (next < 5.5) {
           setDemoState('detected');
-        }
-
-        /*
-         * 5.5 - 7 seconds
-         * Establish audio
-         */
-        else if (next < 7) {
+        } else if (next < 7) {
           setDemoState('connecting');
-        }
-
-        /*
-         * 7 - 9 seconds
-         * Prepare models
-         */
-        else if (next < 9) {
+        } else if (next < 9) {
           setDemoState('preparing');
-        }
-
-        /*
-         * 9 - 18 seconds
-         * Monitoring
-         */
-        else if (next < 18) {
+        } else if (next < 18) {
           setDemoState('monitoring');
-        }
-
-        /*
-         * 18 - 20 seconds
-         * Risk escalation
-         */
-        else if (next < 20) {
+        } else if (next < 20) {
           setDemoState('monitoring');
-        }
-
-        /*
-         * 20 seconds
-         * Critical
-         */
-        else {
+        } else {
           setDemoState('critical');
           setDemoRunning(false);
           setShowAlert(true);
-
           return 20;
         }
 
-        /*
-         * Find closest stage.
-         *
-         * Since the UI updates every 0.5 sec, the
-         * displayed evidence gradually moves through
-         * the predefined stages.
-         */
         if (next >= 9) {
           let closestIndex = 0;
-
           DEMO_STAGES.forEach((item, index) => {
             if (item.time <= next) {
               closestIndex = index;
             }
           });
-
           setStageIndex(closestIndex);
         }
 
@@ -587,26 +704,6 @@ export default function LiveDetection() {
 
     return () => clearInterval(timer);
   }, [demoRunning]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | START DEMO
-  |--------------------------------------------------------------------------
-  */
-
-  const startDemo = () => {
-    setDemoRunning(true);
-    setDemoState('waiting');
-    setElapsed(0);
-    setStageIndex(0);
-    setShowAlert(false);
-  };
-
-  /*
-  |--------------------------------------------------------------------------
-  | RESET
-  |--------------------------------------------------------------------------
-  */
 
   const resetDemo = () => {
     setDemoRunning(false);
@@ -622,37 +719,74 @@ export default function LiveDetection() {
   |--------------------------------------------------------------------------
   */
 
-  const analysisActive = elapsed >= 9;
+  const isRealActive = isLiveCaptureActive || liveResultPayload !== null;
+  const analysisActive = isRealActive ? liveCaptureStatus === 'active' || liveCaptureStatus === 'buffering' : elapsed >= 9;
 
   const stage = DEMO_STAGES[stageIndex];
 
-  const currentData = analysisActive
-    ? stage
-    : {
+  // Resolve current score data from real WebSocket payload if live active, else fallback to DEMO_STAGES
+  const currentData = useMemo(() => {
+    if (isRealActive && liveResultPayload) {
+      const spoofPct = Math.round(liveResultPayload.spoof_probability * 100);
+      return {
+        risk: spoofPct,
+        voice: spoofPct,
+        acoustic: stage.acoustic,
+        behavioral: stage.behavioral,
+        context: stage.context,
+        level: liveResultPayload.risk_level,
+        label: `Genuine AI Model Result (${liveResultPayload.prediction})`,
+        transcript: stage.transcript,
+        indicators: [
+          `Authenticity Score: ${spoofPct}% Spoof Probability`,
+          `Model Verdict: ${liveResultPayload.prediction}`,
+          liveResultPayload.recommendation,
+        ],
+      };
+    }
+
+    if (isRealActive && liveCaptureStatus === 'buffering') {
+      return {
         risk: null,
         voice: null,
         acoustic: null,
         behavioral: null,
         context: null,
-        level: null,
-        label: LIFECYCLE[demoState]?.label || 'Ready',
-        transcript:
-          demoState === 'detected'
-            ? 'Incoming call detected. Establishing connection…'
-            : demoState === 'connecting'
-              ? 'Establishing secure audio stream…'
-              : demoState === 'preparing'
-                ? 'Audio stream established. Preparing analysis…'
-                : 'Waiting for incoming call…',
-        indicators:
-          demoState === 'waiting'
-            ? ['No active call detected']
-            : demoState === 'detected'
-              ? ['Incoming call identified']
-              : demoState === 'connecting'
-                ? ['Audio channel negotiation in progress']
-                : ['Analysis pipeline initialization in progress'],
+        level: 'LOW',
+        label: 'Analyzing meeting audio (Buffering initial 4s window)...',
+        transcript: 'Capturing browser tab audio. Preparing model inference...',
+        indicators: ['Tab audio stream established', 'Buffering 4-second audio window'],
       };
+    }
+
+    return analysisActive
+      ? stage
+      : {
+          risk: null,
+          voice: null,
+          acoustic: null,
+          behavioral: null,
+          context: null,
+          level: null,
+          label: LIFECYCLE[demoState]?.label || 'Ready',
+          transcript:
+            demoState === 'detected'
+              ? 'Incoming call detected. Establishing connection…'
+              : demoState === 'connecting'
+                ? 'Establishing secure audio stream…'
+                : demoState === 'preparing'
+                  ? 'Audio stream established. Preparing analysis…'
+                  : 'Waiting for incoming call…',
+          indicators:
+            demoState === 'waiting'
+              ? ['No active call detected']
+              : demoState === 'detected'
+                ? ['Incoming call identified']
+                : demoState === 'connecting'
+                  ? ['Audio channel negotiation in progress']
+                  : ['Analysis pipeline initialization in progress'],
+        };
+  }, [isRealActive, liveResultPayload, liveCaptureStatus, stage, analysisActive, demoState]);
 
   const riskLevel = currentData.level || 'LOW';
 
@@ -664,7 +798,12 @@ export default function LiveDetection() {
       solid: 'bg-slate-600',
     };
 
-  const phase = LIFECYCLE[demoState] || LIFECYCLE.idle;
+  const phase = isRealActive
+    ? {
+        label: liveCaptureStatus === 'buffering' ? 'Analyzing...' : liveCaptureStatus === 'active' ? 'Live Meeting Analysis Active' : 'Connecting...',
+        description: liveStatusMessage,
+      }
+    : LIFECYCLE[demoState] || LIFECYCLE.idle;
 
   /*
   |--------------------------------------------------------------------------
@@ -673,60 +812,31 @@ export default function LiveDetection() {
   */
 
   const actionText = useMemo(() => {
+    if (isRealActive && liveResultPayload) {
+      return liveResultPayload.recommendation;
+    }
+    if (isRealActive && liveCaptureStatus === 'buffering') {
+      return 'Analyzing meeting audio stream... Initial results will appear shortly.';
+    }
     if (!analysisActive) {
-      if (demoState === 'waiting') {
-        return 'Waiting for a live call before beginning analysis.';
-      }
-
-      if (demoState === 'detected') {
-        return 'Call detected. Preparing secure audio analysis.';
-      }
-
-      if (demoState === 'connecting') {
-        return 'Establishing the audio stream before evaluating risk.';
-      }
-
-      return 'Initializing voice, acoustic and behavioral analysis.';
+      return 'Click Start Live Analysis and select browser meeting tab to begin continuous verification.';
     }
+    return stage.level === 'LOW'
+      ? 'Continue normal verification.'
+      : stage.level === 'SUSPICIOUS'
+        ? 'Request additional verification before proceeding.'
+        : stage.level === 'HIGH'
+          ? 'Perform independent caller verification.'
+          : 'Do not authorize requested action. Trigger MFA & callback.';
+  }, [isRealActive, liveResultPayload, liveCaptureStatus, analysisActive, stage]);
 
-    if (stage.level === 'LOW') {
-      return 'Continue normal verification.';
-    }
-
-    if (stage.level === 'SUSPICIOUS') {
-      return 'Request additional verification before proceeding.';
-    }
-
-    if (stage.level === 'HIGH') {
-      return 'Perform independent caller verification.';
-    }
-
-    return 'Do not authorize the requested action. Trigger MFA and independent callback.';
-  }, [analysisActive, demoState, stage.level]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | TIME
-  |--------------------------------------------------------------------------
-  */
-
-  const displaySeconds = Math.floor(elapsed);
-
+  const displaySeconds = isRealActive ? liveElapsed : Math.floor(elapsed);
   const seconds = String(displaySeconds % 60).padStart(2, '0');
-
-  /*
-  |--------------------------------------------------------------------------
-  | PIPELINE STATUS
-  |--------------------------------------------------------------------------
-  */
 
   const getPipelineStatus = (score) => {
     if (!analysisActive || score === null) return 'LOW';
-
     if (score >= 65) return 'HIGH';
-
     if (score >= 40) return 'SUSPICIOUS';
-
     return 'LOW';
   };
 
@@ -751,8 +861,10 @@ export default function LiveDetection() {
                 Security Operations
               </span>
 
-              <span className="px-2 py-1 border border-blue-500/20 bg-blue-500/10 text-blue-400 text-[8px] font-semibold tracking-wider uppercase">
-                Demo Mode
+              <span className={`px-2 py-1 border text-[8px] font-semibold tracking-wider uppercase ${
+                isRealActive ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-blue-500/20 bg-blue-500/10 text-blue-400'
+              }`}>
+                {isRealActive ? 'Real Meeting Audio' : 'Live Mode'}
               </span>
             </div>
 
@@ -761,8 +873,7 @@ export default function LiveDetection() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-500 max-w-2xl">
-              Continuous voice authenticity, acoustic and behavioral analysis
-              for a simulated real-time call.
+              {liveStatusMessage}
             </p>
           </div>
 
@@ -770,43 +881,33 @@ export default function LiveDetection() {
             <div className="flex items-center gap-2 text-xs text-slate-400 border border-slate-800 bg-slate-900/50 px-3 py-2">
               <span
                 className={`w-2 h-2 rounded-full ${
-                  demoRunning
+                  isRealActive
                     ? 'bg-emerald-400 animate-pulse'
-                    : demoState === 'critical'
-                      ? 'bg-red-400'
+                    : demoRunning
+                      ? 'bg-emerald-400 animate-pulse'
                       : 'bg-slate-600'
                 }`}
               />
-
               {phase.label}
             </div>
 
-            {!demoRunning && demoState !== 'critical' ? (
+            {!isRealActive ? (
               <motion.button
-                onClick={startDemo}
+                onClick={startLiveAnalysis}
                 className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-semibold transition-colors"
                 whileTap={{ scale: 0.98 }}
               >
                 <PhoneCall className="w-4 h-4" />
-                Start Live Demo
-              </motion.button>
-            ) : demoRunning ? (
-              <motion.button
-                onClick={resetDemo}
-                className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors"
-                whileTap={{ scale: 0.98 }}
-              >
-                <PhoneOff className="w-4 h-4" />
-                End Call
+                Start Live Analysis
               </motion.button>
             ) : (
               <motion.button
-                onClick={startDemo}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-semibold transition-colors"
+                onClick={() => stopLiveAnalysis()}
+                className="flex items-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-400 text-white text-xs font-semibold transition-colors"
                 whileTap={{ scale: 0.98 }}
               >
-                <PhoneCall className="w-4 h-4" />
-                Replay Demo
+                <PhoneOff className="w-4 h-4" />
+                Stop Analysis
               </motion.button>
             )}
           </div>
@@ -1154,6 +1255,77 @@ export default function LiveDetection() {
               phase={demoState}
             />
 
+          </div>
+        </motion.section>
+
+        {/* ================================================================
+            ROLLING 30-WINDOW TIMESTAMP BREAKDOWN LOG
+        ================================================================= */}
+
+        <motion.section
+          className="mt-6 border border-slate-800 bg-[#0a0e14] p-5 sm:p-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <Activity className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-200">
+                  Rolling 30-Window Analysis Log
+                </h3>
+                <p className="text-[9px] text-slate-500">
+                  Instant raw uninfluenced spoof probabilities per 4-second timeframe (capped at 30 entries)
+                </p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-[9px] font-mono text-slate-400">
+              {rollingWindowHistory.length} / 30 Windows
+            </span>
+          </div>
+
+          <div className="mt-4 max-h-72 overflow-y-auto pr-1 space-y-2 font-mono text-xs">
+            {rollingWindowHistory.length === 0 ? (
+              <div className="py-8 text-center text-slate-600 text-xs font-sans">
+                {isRealActive ? 'Buffering initial 4-second audio window...' : 'Start live meeting analysis to stream window log timestamps.'}
+              </div>
+            ) : (
+              rollingWindowHistory.slice().reverse().map((entry) => {
+                const spoofPercent = Math.round(entry.instantSpoof * 100);
+                const isSpoof = spoofPercent >= 50;
+                return (
+                  <div
+                    key={`${entry.index}-${entry.timestamp}`}
+                    className="flex items-center justify-between p-2.5 rounded border border-slate-800/60 bg-slate-900/40 hover:bg-slate-900/80 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400">
+                        #{String(entry.index).padStart(2, '0')}
+                      </span>
+                      <span className="text-slate-300 font-semibold">
+                        ⏱️ {entry.timestamp}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <span className="text-[9px] text-slate-500 uppercase tracking-wider block">Instant Spoof</span>
+                        <span className={`font-bold ${isSpoof ? 'text-red-400' : 'text-emerald-400'}`}>
+                          {spoofPercent}%
+                        </span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
+                        isSpoof ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      }`}>
+                        {isSpoof ? 'SPOOF' : 'REAL'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </motion.section>
 
@@ -1549,7 +1721,7 @@ export default function LiveDetection() {
                 </p>
 
                 <p className="text-[9px] text-slate-500 mt-0.5">
-                  VoxShield security alert
+                  Anahat security alert
                 </p>
 
               </div>

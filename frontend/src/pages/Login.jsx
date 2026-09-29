@@ -99,7 +99,7 @@ export default function Login() {
     setOtpError('');
     setStep('otp');
     setResendCooldown(30);
-    console.log('VoxShield Demo OTP:', newOtp);
+    console.log('Anahat Demo OTP:', newOtp);
   };
 
   const handleVerifyOtp = (e) => {
@@ -123,7 +123,7 @@ export default function Login() {
     setOtp('');
     setOtpError('');
     setResendCooldown(30);
-    console.log('VoxShield Demo OTP:', newOtp);
+    console.log('Anahat Demo OTP:', newOtp);
   };
 
   const handleBack = () => {
@@ -178,7 +178,7 @@ export default function Login() {
             </div>
             <div>
               <div className="text-sm font-semibold tracking-[0.18em] text-slate-100">
-                VOXSHIELD
+                ANAHAT
               </div>
               <div className="text-[9px] tracking-[0.16em] text-slate-500 uppercase mt-0.5">
                 Voice Security Intelligence
@@ -218,7 +218,7 @@ export default function Login() {
               </h1>
 
               <p className="mt-7 text-base sm:text-lg leading-7 text-slate-400 max-w-lg">
-                VoxShield analyzes voice authenticity, evaluates interaction
+                Anahat analyzes voice authenticity, evaluates interaction
                 risk, and helps prevent high-impact impersonation attacks before
                 sensitive actions are taken.
               </p>
@@ -314,7 +314,7 @@ export default function Login() {
                         {step === 'details' ? 'Secure session' : 'Identity verification'}
                       </p>
                       <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-100">
-                        {step === 'details' ? 'Welcome to VoxShield' : 'Verify your identity'}
+                        {step === 'details' ? 'Welcome to Anahat' : 'Verify your identity'}
                       </h2>
                     </div>
                     <div className="w-10 h-10 rounded-xl border border-slate-800 bg-slate-950 flex items-center justify-center">
@@ -532,7 +532,7 @@ export default function Login() {
                       <Lock className="w-3 h-3 text-emerald-500/70" />
                       {step === 'details' ? 'Verification required' : 'Identity verification active'}
                     </div>
-                    <span className="text-[10px] text-slate-700">VOXSHIELD</span>
+                    <span className="text-[10px] text-slate-700">ANAHAT</span>
                   </div>
                 </div>
               </div>

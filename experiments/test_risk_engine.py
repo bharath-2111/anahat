@@ -19,7 +19,7 @@ test_scores = [
 
 
 print("\n==============================")
-print("VOXSHIELD RISK ENGINE TEST")
+print("ANAHAT RISK ENGINE TEST")
 print("==============================")
 
 for score in test_scores:

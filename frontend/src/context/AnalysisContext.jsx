@@ -5,13 +5,22 @@ import { validateAudioFile } from '../utils/validators';
 
 const AnalysisContext = createContext(null);
 
-const STORAGE_KEY_USER = 'voxshield_user';
-const STORAGE_KEY_AUTH = 'voxshield_authenticated';
+const STORAGE_KEY_USER = 'anahat_user';
+const STORAGE_KEY_AUTH = 'anahat_authenticated';
+const LEGACY_STORAGE_KEY_USER = 'voxshield_user';
+const LEGACY_STORAGE_KEY_AUTH = 'voxshield_authenticated';
 
 export function AnalysisProvider({ children }) {
   const [userData, setUserData] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_USER);
+      let saved = localStorage.getItem(STORAGE_KEY_USER);
+      if (!saved) {
+        saved = localStorage.getItem(LEGACY_STORAGE_KEY_USER);
+        if (saved) {
+          localStorage.setItem(STORAGE_KEY_USER, saved);
+          localStorage.removeItem(LEGACY_STORAGE_KEY_USER);
+        }
+      }
       return saved ? JSON.parse(saved) : null;
     } catch (e) {
       return null;
@@ -20,7 +29,15 @@ export function AnalysisProvider({ children }) {
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     try {
-      return localStorage.getItem(STORAGE_KEY_AUTH) === 'true';
+      let auth = localStorage.getItem(STORAGE_KEY_AUTH);
+      if (!auth) {
+        auth = localStorage.getItem(LEGACY_STORAGE_KEY_AUTH);
+        if (auth) {
+          localStorage.setItem(STORAGE_KEY_AUTH, auth);
+          localStorage.removeItem(LEGACY_STORAGE_KEY_AUTH);
+        }
+      }
+      return auth === 'true';
     } catch (e) {
       return false;
     }

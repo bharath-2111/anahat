@@ -293,7 +293,7 @@ export default function AIAssistant({
           icon: Info,
           title: "What is happening?",
           answer:
-            "VoxShield is currently processing the recording and checking the voice signal for signs of synthetic or manipulated speech.",
+            "Anahat is currently processing the recording and checking the voice signal for signs of synthetic or manipulated speech.",
         },
         {
           id: "time",
@@ -379,7 +379,7 @@ export default function AIAssistant({
         icon: FileAudio,
         title: "What audio can I analyze?",
         answer:
-          "VoxShield supports common audio recordings such as WAV, MP3, FLAC, OGG and M4A, depending on the system's audio decoder support.",
+          "Anahat supports common audio recordings such as WAV, MP3, FLAC, OGG and M4A, depending on the system's audio decoder support.",
       },
       {
         id: "detection",
@@ -581,7 +581,7 @@ export default function AIAssistant({
                   </p>
 
                   <p className="text-[10px] text-slate-500">
-                    VoxShield support assistant
+                    Anahat support assistant
                   </p>
                 </div>
               </div>

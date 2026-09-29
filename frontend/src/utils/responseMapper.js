@@ -117,14 +117,18 @@ export function normalizePredictionResponse(response, audioFile = null) {
     duration: response.audio_info?.duration || response.duration || '00:00'
   };
 
-  // 6. Additional Arbitrary Backend Fields
+  // 6. Windows Analyzed Extraction
+  const windowsAnalyzed = response.windows_analyzed ?? response.windowsAnalyzed ?? response.windows?.length ?? 1;
+
+  // 7. Additional Arbitrary Backend Fields
   const knownKeys = new Set([
     'prediction', 'result', 'label', 'status', 'classification',
     'spoof_probability', 'spoofProbability', 'spoof_score', 'fake_probability', 'ai_probability',
     'real_probability', 'realProbability', 'real_score', 'human_probability', 'authentic_probability',
     'risk_level', 'riskLevel', 'threat_level', 'severity',
     'recommendation', 'recommendation_text', 'action', 'guidance',
-    'audio_info', 'filename', 'file_size', 'file_type', 'duration'
+    'audio_info', 'filename', 'file_size', 'file_type', 'duration',
+    'windows_analyzed', 'windowsAnalyzed', 'windows'
   ]);
 
   const additionalData = {};
@@ -141,6 +145,7 @@ export function normalizePredictionResponse(response, audioFile = null) {
     riskLevel,
     recommendation,
     audioInfo,
+    windowsAnalyzed,
     additionalData,
     rawResponse: response
   };

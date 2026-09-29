@@ -28,7 +28,7 @@ function addPageNumber(doc, pageNumber) {
   doc.setTextColor(130, 138, 150);
 
   doc.text(
-    `VoxShield · Voice Security Intelligence`,
+    `Anahat · Voice Security Intelligence`,
     18,
     pageHeight - 10
   );
@@ -255,7 +255,7 @@ export function exportAnalysisReport(result) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
   doc.setTextColor(15, 23, 42);
-  doc.text('VOXSHIELD', 18, y);
+  doc.text('ANAHAT', 18, y);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -557,7 +557,7 @@ export function exportAnalysisReport(result) {
   );
 
   const technicalDetails = [
-    ['System', 'VoxShield Voice Security Intelligence'],
+    ['System', 'Anahat Voice Security Intelligence'],
     ['Analysis type', 'Voice authenticity / synthetic speech detection'],
     ['Input', 'Audio recording'],
     ['Sampling rate', '16 kHz mono processing'],
@@ -717,6 +717,6 @@ export function exportAnalysisReport(result) {
     .replace(/[^a-z0-9-_]/gi, '_');
 
   doc.save(
-    `VoxShield_${cleanName}_Report.pdf`
+    `Anahat_${cleanName}_Report.pdf`
   );
 }

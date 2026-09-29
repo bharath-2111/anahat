@@ -17,7 +17,7 @@ const { spawn } = require("child_process");
 
   const page = await context.newPage();
 
-  console.log("Opening VoxShield...");
+  console.log("Opening Anahat...");
 
   await page.goto("http://localhost:5173", {
     waitUntil: "networkidle",
@@ -56,7 +56,7 @@ const { spawn } = require("child_process");
     "-pix_fmt",
     "yuv420p",
 
-    "VoxShield_Demo.mp4",
+    "Anahat_Demo.mp4",
   ]);
 
   ffmpeg.stderr.on("data", (data) => {
@@ -69,7 +69,7 @@ const { spawn } = require("child_process");
 
   await page.waitForTimeout(2000);
 
-  console.log("\nStarting VoxShield demo...");
+  console.log("\nStarting Anahat demo...");
 
   const startButton = page.getByRole("button", {
     name: /Start Live Demo/i,
@@ -99,5 +99,5 @@ const { spawn } = require("child_process");
   await browser.close();
 
   console.log("\nDone!");
-  console.log("Video: VoxShield_Demo.mp4");
+  console.log("Video: Anahat_Demo.mp4");
 })();

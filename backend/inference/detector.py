@@ -17,7 +17,7 @@ STEP_SIZE = 3 * SAMPLE_RATE
 class VoiceSpoofDetector:
 
     def __init__(self):
-        print("Loading VoxShield voice detector...")
+        print("Loading Anahat voice detector...")
 
         self.processor = Wav2Vec2FeatureExtractor.from_pretrained(
             MODEL_NAME

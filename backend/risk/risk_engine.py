@@ -4,7 +4,7 @@ from typing import Dict
 def calculate_risk(spoof_probability: float) -> Dict:
     """
     Convert the AI detector's spoof probability
-    into a VoxShield risk assessment.
+    into an Anahat risk assessment.
     """
 
     if spoof_probability >= 0.85:

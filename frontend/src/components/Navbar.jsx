@@ -126,8 +126,8 @@ export default function Navbar() {
                     text-slate-100
                   "
                 >
-                   <span className="text-emerald-400">Vox</span>
-  <span className="text-white">Shield</span>
+                    <span className="text-emerald-400">Ana</span>
+                    <span className="text-white">hat</span>
                 </span>
               </button>
 
@@ -315,8 +315,8 @@ export default function Navbar() {
                       text-white
                     "
                   >
-                    <span className="text-emerald-400">Vox</span>
-                    <span className="text-white">Shield</span>
+                    <span className="text-emerald-400">Ana</span>
+                    <span className="text-white">hat</span>
                   </span>
                 </button>
 
