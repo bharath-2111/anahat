@@ -308,25 +308,24 @@ function Waveform({ active, connecting = false }) {
       {bars.map((height, index) => (
         <motion.div
           key={index}
-          className={`w-1 rounded-full ${
-            active
+          className={`w-1 rounded-full ${active
               ? 'bg-emerald-400/80'
               : connecting
                 ? 'bg-blue-400/60'
                 : 'bg-slate-700'
-          }`}
+            }`}
           animate={
             isActive
               ? {
-                  height: [
-                    `${Math.max(10, height - 15)}%`,
-                    `${height}%`,
-                    `${Math.max(12, height - 8)}%`,
-                  ],
-                }
+                height: [
+                  `${Math.max(10, height - 15)}%`,
+                  `${height}%`,
+                  `${Math.max(12, height - 8)}%`,
+                ],
+              }
               : {
-                  height: `${height * 0.35}%`,
-                }
+                height: `${height * 0.35}%`,
+              }
           }
           transition={{
             duration: active
@@ -403,16 +402,13 @@ function PipelineCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
-            className={`p-2 ${
-              isReady ? style.bg : 'bg-slate-800/60'
-            } border ${
-              isReady ? style.border : 'border-slate-700'
-            }`}
+            className={`p-2 ${isReady ? style.bg : 'bg-slate-800/60'
+              } border ${isReady ? style.border : 'border-slate-700'
+              }`}
           >
             <Icon
-              className={`w-4 h-4 ${
-                isReady ? style.text : 'text-slate-500'
-              }`}
+              className={`w-4 h-4 ${isReady ? style.text : 'text-slate-500'
+                }`}
             />
           </div>
 
@@ -428,9 +424,8 @@ function PipelineCard({
         </div>
 
         <span
-          className={`text-[9px] font-semibold ${
-            isReady ? style.text : 'text-slate-600'
-          }`}
+          className={`text-[9px] font-semibold ${isReady ? style.text : 'text-slate-600'
+            }`}
         >
           {isReady ? `${score}%` : '—'}
         </span>
@@ -459,9 +454,8 @@ function PipelineCard({
 
       <div className="mt-3 flex items-center gap-1.5">
         <span
-          className={`w-1.5 h-1.5 rounded-full ${
-            isReady ? style.solid : 'bg-slate-600'
-          }`}
+          className={`w-1.5 h-1.5 rounded-full ${isReady ? style.solid : 'bg-slate-600'
+            }`}
         />
 
         <span className="text-[9px] text-slate-500">
@@ -524,7 +518,7 @@ export default function LiveDetection() {
       mediaStreamRef.current = null;
     }
     if (audioContextRef.current) {
-      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current.close().catch(() => { });
       audioContextRef.current = null;
     }
     if (webSocketRef.current) {
@@ -595,6 +589,10 @@ export default function LiveDetection() {
       webSocketRef.current = ws;
 
       ws.onopen = () => {
+
+        ws.send(JSON.stringify({
+          sample_rate: audioCtx.sampleRate
+        }));
         setIsLiveCaptureActive(true);
         setLiveCaptureStatus('buffering');
         setLiveStatusMessage('Capturing meeting audio. Buffering initial 4s window...');
@@ -602,6 +600,7 @@ export default function LiveDetection() {
 
       workletNode.port.onmessage = (event) => {
         if (ws.readyState === WebSocket.OPEN) {
+          console.log(event.data);
           ws.send(event.data);
         }
       };
@@ -762,30 +761,30 @@ export default function LiveDetection() {
     return analysisActive
       ? stage
       : {
-          risk: null,
-          voice: null,
-          acoustic: null,
-          behavioral: null,
-          context: null,
-          level: null,
-          label: LIFECYCLE[demoState]?.label || 'Ready',
-          transcript:
-            demoState === 'detected'
-              ? 'Incoming call detected. Establishing connection…'
+        risk: null,
+        voice: null,
+        acoustic: null,
+        behavioral: null,
+        context: null,
+        level: null,
+        label: LIFECYCLE[demoState]?.label || 'Ready',
+        transcript:
+          demoState === 'detected'
+            ? 'Incoming call detected. Establishing connection…'
+            : demoState === 'connecting'
+              ? 'Establishing secure audio stream…'
+              : demoState === 'preparing'
+                ? 'Audio stream established. Preparing analysis…'
+                : 'Waiting for incoming call…',
+        indicators:
+          demoState === 'waiting'
+            ? ['No active call detected']
+            : demoState === 'detected'
+              ? ['Incoming call identified']
               : demoState === 'connecting'
-                ? 'Establishing secure audio stream…'
-                : demoState === 'preparing'
-                  ? 'Audio stream established. Preparing analysis…'
-                  : 'Waiting for incoming call…',
-          indicators:
-            demoState === 'waiting'
-              ? ['No active call detected']
-              : demoState === 'detected'
-                ? ['Incoming call identified']
-                : demoState === 'connecting'
-                  ? ['Audio channel negotiation in progress']
-                  : ['Analysis pipeline initialization in progress'],
-        };
+                ? ['Audio channel negotiation in progress']
+                : ['Analysis pipeline initialization in progress'],
+      };
   }, [isRealActive, liveResultPayload, liveCaptureStatus, stage, analysisActive, demoState]);
 
   const riskLevel = currentData.level || 'LOW';
@@ -800,9 +799,9 @@ export default function LiveDetection() {
 
   const phase = isRealActive
     ? {
-        label: liveCaptureStatus === 'buffering' ? 'Analyzing...' : liveCaptureStatus === 'active' ? 'Live Meeting Analysis Active' : 'Connecting...',
-        description: liveStatusMessage,
-      }
+      label: liveCaptureStatus === 'buffering' ? 'Analyzing...' : liveCaptureStatus === 'active' ? 'Live Meeting Analysis Active' : 'Connecting...',
+      description: liveStatusMessage,
+    }
     : LIFECYCLE[demoState] || LIFECYCLE.idle;
 
   /*
@@ -861,9 +860,8 @@ export default function LiveDetection() {
                 Security Operations
               </span>
 
-              <span className={`px-2 py-1 border text-[8px] font-semibold tracking-wider uppercase ${
-                isRealActive ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-blue-500/20 bg-blue-500/10 text-blue-400'
-              }`}>
+              <span className={`px-2 py-1 border text-[8px] font-semibold tracking-wider uppercase ${isRealActive ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-blue-500/20 bg-blue-500/10 text-blue-400'
+                }`}>
                 {isRealActive ? 'Real Meeting Audio' : 'Live Mode'}
               </span>
             </div>
@@ -880,13 +878,12 @@ export default function LiveDetection() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-xs text-slate-400 border border-slate-800 bg-slate-900/50 px-3 py-2">
               <span
-                className={`w-2 h-2 rounded-full ${
-                  isRealActive
+                className={`w-2 h-2 rounded-full ${isRealActive
                     ? 'bg-emerald-400 animate-pulse'
                     : demoRunning
                       ? 'bg-emerald-400 animate-pulse'
                       : 'bg-slate-600'
-                }`}
+                  }`}
               />
               {phase.label}
             </div>
@@ -926,15 +923,14 @@ export default function LiveDetection() {
 
             <div className="flex items-center gap-3">
               <div
-                className={`w-2 h-2 rounded-full ${
-                  demoState === 'critical'
+                className={`w-2 h-2 rounded-full ${demoState === 'critical'
                     ? 'bg-red-400'
                     : demoState === 'monitoring'
                       ? 'bg-emerald-400 animate-pulse'
                       : demoState === 'waiting'
                         ? 'bg-slate-500'
                         : 'bg-blue-400 animate-pulse'
-                }`}
+                  }`}
               />
 
               <div>
@@ -1035,13 +1031,12 @@ export default function LiveDetection() {
                 <div className="flex items-center gap-2">
 
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      demoState === 'monitoring'
+                    className={`w-1.5 h-1.5 rounded-full ${demoState === 'monitoring'
                         ? 'bg-emerald-400 animate-pulse'
                         : demoState === 'connecting'
                           ? 'bg-blue-400 animate-pulse'
                           : 'bg-slate-600'
-                    }`}
+                      }`}
                   />
 
                   <span className="text-[9px] text-slate-500">
@@ -1084,18 +1079,16 @@ export default function LiveDetection() {
           {/* Risk */}
 
           <div
-            className={`p-5 sm:p-6 ${
-              analysisActive ? riskStyle.bg : 'bg-slate-900/20'
-            }`}
+            className={`p-5 sm:p-6 ${analysisActive ? riskStyle.bg : 'bg-slate-900/20'
+              }`}
           >
 
             <div className="flex items-center gap-2">
               <ShieldAlert
-                className={`w-4 h-4 ${
-                  analysisActive
+                className={`w-4 h-4 ${analysisActive
                     ? riskStyle.text
                     : 'text-slate-500'
-                }`}
+                  }`}
               />
 
               <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">
@@ -1109,11 +1102,10 @@ export default function LiveDetection() {
                 key={currentData.risk ?? 'waiting'}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`text-5xl font-semibold tracking-tight ${
-                  analysisActive
+                className={`text-5xl font-semibold tracking-tight ${analysisActive
                     ? riskStyle.text
                     : 'text-slate-600'
-                }`}
+                  }`}
               >
                 {analysisActive ? currentData.risk : '—'}
               </motion.span>
@@ -1127,11 +1119,10 @@ export default function LiveDetection() {
             </div>
 
             <div
-              className={`mt-1 text-sm font-semibold ${
-                analysisActive
+              className={`mt-1 text-sm font-semibold ${analysisActive
                   ? riskStyle.text
                   : 'text-slate-500'
-              }`}
+                }`}
             >
               {analysisActive
                 ? currentData.level
@@ -1316,9 +1307,8 @@ export default function LiveDetection() {
                           {spoofPercent}%
                         </span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
-                        isSpoof ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${isSpoof ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        }`}>
                         {isSpoof ? 'SPOOF' : 'REAL'}
                       </span>
                     </div>
@@ -1438,7 +1428,7 @@ export default function LiveDetection() {
                     <div className="mt-0.5">
 
                       {currentData.level === 'LOW' ||
-                      !analysisActive ? (
+                        !analysisActive ? (
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                       ) : (
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
@@ -1566,15 +1556,13 @@ export default function LiveDetection() {
         ================================================================= */}
 
         <motion.section
-          className={`mt-6 border ${
-            analysisActive
+          className={`mt-6 border ${analysisActive
               ? riskStyle.border
               : 'border-slate-800'
-          } ${
-            analysisActive
+            } ${analysisActive
               ? riskStyle.bg
               : 'bg-[#0a0e14]'
-          } p-5 sm:p-6`}
+            } p-5 sm:p-6`}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -1584,29 +1572,26 @@ export default function LiveDetection() {
             <div className="flex items-start gap-4">
 
               <div
-                className={`p-3 border ${
-                  analysisActive
+                className={`p-3 border ${analysisActive
                     ? riskStyle.border
                     : 'border-slate-800'
-                } ${
-                  analysisActive
+                  } ${analysisActive
                     ? riskStyle.bg
                     : 'bg-slate-900/40'
-                }`}
+                  }`}
               >
 
                 {analysisActive &&
-                currentData.level !== 'LOW' ? (
+                  currentData.level !== 'LOW' ? (
                   <ShieldAlert
                     className={`w-5 h-5 ${riskStyle.text}`}
                   />
                 ) : (
                   <ShieldCheck
-                    className={`w-5 h-5 ${
-                      analysisActive
+                    className={`w-5 h-5 ${analysisActive
                         ? riskStyle.text
                         : 'text-slate-500'
-                    }`}
+                      }`}
                   />
                 )}
 
@@ -1615,11 +1600,10 @@ export default function LiveDetection() {
               <div>
 
                 <p
-                  className={`text-[10px] uppercase tracking-wider ${
-                    analysisActive
+                  className={`text-[10px] uppercase tracking-wider ${analysisActive
                       ? riskStyle.text
                       : 'text-slate-500'
-                  }`}
+                    }`}
                 >
                   Recommended security action
                 </p>

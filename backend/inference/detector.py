@@ -89,6 +89,14 @@ class VoiceSpoofDetector:
         if real_probability is None:
             real_probability = 1.0 - fake_probability
 
+        print(
+            "[AASIST3]",
+            "logits=",
+            outputs.logits.detach().cpu().numpy(),
+            "probabilities=",
+            probabilities.detach().cpu().numpy()
+        )
+
         return {
             "fake_probability": fake_probability,
             "real_probability": real_probability
